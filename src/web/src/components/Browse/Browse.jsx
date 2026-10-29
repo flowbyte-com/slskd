@@ -1,5 +1,6 @@
 import './Browse.css';
 import * as users from '../../lib/users';
+import FavouriteToggle from '../Favourites/FavouriteToggle';
 import PlaceholderSegment from '../Shared/PlaceholderSegment';
 import DirectoryTree from './DirectoryTree';
 import Selection from './Selection';
@@ -83,7 +84,15 @@ class Browse extends Component {
     })();
 
     if (this.props.location.state?.user) {
-      this.setState({ username: this.props.location.state.user }, this.browse);
+      const username = this.props.location.state.user;
+
+      // the username is copied into the input before browsing so that the
+      // input and the state remain in sync, and so that the request is made
+      // for the requested user.
+      this.setState({ username }, () => {
+        this.inputtext.inputRef.current.value = username;
+        this.browse();
+      });
     }
 
     document.addEventListener('keyup', this.keyUp, false);
@@ -414,6 +423,10 @@ class Browse extends Component {
                 name="circle"
               />
               {username}
+              <FavouriteToggle
+                className="browse-favourite-toggle"
+                username={username}
+              />
             </Card.Header>
             <Card.Meta className="browse-meta">
               <span>{formatBrowseSummary(info)}</span>

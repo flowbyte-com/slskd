@@ -5,6 +5,10 @@
 ### [System Requirements](https://github.com/slskd/slskd/blob/master/docs/system_requirements.md)
 ### [Known Issues](https://github.com/slskd/slskd/blob/master/docs/known_issues.md)
 
+## Using slskd
+
+### [Favourite Users](https://github.com/slskd/slskd/blob/master/docs/favourites.md)
+
 ## Configuring slskd
 
 ### [Application Configuration](https://github.com/slskd/slskd/blob/master/docs/config.md)
