@@ -1,8 +1,10 @@
 import { getResponses } from '../../../lib/searches';
 import SearchDetail from './SearchDetail';
+import { FavouritesProvider } from '../../Favourites/FavouritesContext';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { act } from 'react-dom/test-utils';
+import { MemoryRouter } from 'react-router-dom';
 
 jest.mock('../../../lib/searches', () => ({
   ...jest.requireActual('../../../lib/searches'),
@@ -108,17 +110,21 @@ const renderDetail = async (element) => {
 };
 
 const detail = (props = {}) => (
-  <SearchDetail
-    creating={false}
-    disabled={false}
-    onCreate={() => {}}
-    onRemove={() => {}}
-    onStop={() => {}}
-    removing={false}
-    search={search}
-    stopping={false}
-    {...props}
-  />
+  <MemoryRouter initialEntries={['/searches/test']}>
+    <FavouritesProvider>
+      <SearchDetail
+        creating={false}
+        disabled={false}
+        onCreate={() => {}}
+        onRemove={() => {}}
+        onStop={() => {}}
+        removing={false}
+        search={search}
+        stopping={false}
+        {...props}
+      />
+    </FavouritesProvider>
+  </MemoryRouter>
 );
 
 describe('SearchDetail', () => {

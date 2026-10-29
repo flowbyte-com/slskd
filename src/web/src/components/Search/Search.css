@@ -214,6 +214,38 @@
   z-index: 1;
 }
 
+/* make the source username in a search result look clickable */
+.result-username {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(0, 0, 0, .3);
+  cursor: pointer;
+  outline-offset: 2px;
+}
+
+.result-username:hover {
+  color: #0e6eb8;
+  text-decoration-color: #0e6eb8;
+}
+
+.result-username:focus-visible {
+  outline: 2px solid #0e6eb8;
+  border-radius: 2px;
+}
+
+.dark .result-username {
+  text-decoration-color: rgba(255, 255, 255, .3);
+}
+
+.dark .result-username:hover {
+  color: #58a6ff;
+  text-decoration-color: #58a6ff;
+}
+
+.dark .result-username:focus-visible {
+  outline-color: #58a6ff;
+}
+
 .dark .result-card .extra {
   border-top: 1px solid rgba(255, 255, 255, .1);
 }
