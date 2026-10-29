@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+#
+# package-release
+#
+# Produce a complete, runnable Linux x64 release from the current branch,
+# including the web frontend, the launcher and a README.  Previous releases
+# are kept in the output directory so you can roll back.
+#
+# Usage:
+#   bin/package-release [--version <version>] [--output <directory>]
+#
+set -euo pipefail
+
+VERSION=""
+OUTPUT=""
+
+while test $# -gt 0; do
+  case "$1" in
+    --version)
+      shift
+      VERSION="$1"
+      shift
+      ;;
+    --output)
+      shift
+      OUTPUT="$1"
+      shift
+      ;;
+    -h|--help)
+      echo "options:"
+      echo "  --version <v>    version string (default: git tag+SHA)"
+      echo "  --output <dir>   output directory (default: ~/Downloads/slskd-custom/slskd-custom-linux-x64-<version>)"
+      exit 0
+      ;;
+    *)
+      echo "unknown option: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
+cd "$(git rev-parse --show-toplevel)"
+
+if [ -z "$VERSION" ]; then
+  tag=$(git describe --tags --abbrev=0)
+  sha=$(git rev-parse --short HEAD)
+  VERSION="${tag}+${sha}"
+fi
+
+if [ -z "$OUTPUT" ]; then
+  OUTPUT="$HOME/Downloads/slskd-custom/slskd-custom-linux-x64-${VERSION}"
+fi
+
+# make the version safe for use in a file name
+SAFE_VERSION=$(echo "$VERSION" | tr '/ ' '__')
+
+echo "Building release $VERSION into $OUTPUT"
+echo ""
+
+# full build + tests
+./bin/build --version "$VERSION"
+
+# publish
+PUBLISH_DIR="$OUTPUT"
+mkdir -p "$PUBLISH_DIR"
+./bin/publish --no-prebuild --runtime linux-x64 --version "$VERSION" --output "$PUBLISH_DIR"
+
+# launcher
+cat > "$PUBLISH_DIR/start.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BINARY="$INSTALL_DIR/slskd"
+if [ ! -x "$BINARY" ]; then
+  echo "error: $BINARY is missing or not executable" >&2
+  exit 1
+fi
+http_port=5030
+previous=""
+for argument in "$@"; do
+  case "$argument" in
+    --http-port=*) http_port="${argument#--http-port=}" ;;
+    --http-port) previous="next" ;;
+    *)
+      if [ "$previous" = "next" ]; then
+        http_port="$argument"
+        previous=""
+      fi
+      ;;
+  esac
+done
+if command -v ss >/dev/null 2>&1; then
+  if ss -ltn 2>/dev/null | grep -q ":$http_port "; then
+    echo "warning: something is already listening on port $http_port." >&2
+    echo "         stop the other slskd instance before starting this one." >&2
+  fi
+fi
+echo "starting customised slskd (favourites + search filters)..."
+echo "web ui: http://localhost:$http_port"
+echo "config: ${SLSKD_APP_DIR:-$HOME/.local/share/slskd}/slskd.yml"
+echo
+cd "$INSTALL_DIR"
+exec "$BINARY" "$@"
+EOF
+chmod +x "$PUBLISH_DIR/start.sh"
+ln -sfn start.sh "$PUBLISH_DIR/start-slskd-custom.sh"
+
+# symlinks mirroring the existing install, so relative paths resolve into the app dir
+ln -sfn "$HOME/.local/share/slskd/downloads" "$PUBLISH_DIR/downloads"
+ln -sfn "$HOME/.local/share/slskd/incomplete" "$PUBLISH_DIR/incomplete"
+
+# README
+cat > "$PUBLISH_DIR/README.txt" <<EOF
+Customised slskd build - Favourite Users + improved Search
+Version: $VERSION
+
+Launcher:
+  $PUBLISH_DIR/start.sh
+
+Your existing installation is untouched.  This build uses your existing
+configuration and application data:
+  configuration   ~/.local/share/slskd/slskd.yml
+  application data ~/.local/share/slskd/data
+
+Stop your currently running slskd first (it holds ports 5030/5031/50300),
+then run the launcher and open http://localhost:5030.
+
+New features:
+  Favourite Users  - star buttons in search results, Browse and Users;
+                     a Favourites screen to add, browse and remove favourites
+                     (stored in the browser's local storage)
+  Improved Search  - visual result filters, presets, persisted preferences,
+                     exact extension/bitrate matching, format and bitrate
+                     columns in the result tables
+EOF
+
+# archive
+ARCHIVE="$HOME/Downloads/slskd-custom/slskd-custom-linux-x64-${SAFE_VERSION}.tar.gz"
+mkdir -p "$HOME/Downloads/slskd-custom"
+tar -czf "$ARCHIVE" -C "$HOME/Downloads/slskd-custom" "$(basename "$PUBLISH_DIR")"
+
+echo ""
+echo "Release complete:"
+echo "  directory : $PUBLISH_DIR"
+echo "  archive   : $ARCHIVE"
+echo ""
+echo "Rollback: keep the previous release directory; it is not overwritten."

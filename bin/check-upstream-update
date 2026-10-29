@@ -1,0 +1,160 @@
+#!/usr/bin/env bash
+#
+# check-upstream-update
+#
+# Detects new upstream slskd commits and, when there are any, creates a
+# candidate branch off `custom` with the upstream code merged in, then runs
+# the web tests, lint, .NET tests and a Linux x64 build against it.
+#
+# This script NEVER modifies `master` or `custom`.  It leaves the candidate
+# branch in place for review, and reports what happened.
+#
+# Safe to run repeatedly.  Requires a clean working tree.
+#
+# Configuration (environment variables):
+#   UPSTREAM_REMOTE   remote name for slskd/slskd (default: upstream)
+#   UPSTREAM_BRANCH    upstream branch to track    (default: master)
+#   BASE_BRANCH       branch to merge into         (default: custom)
+#
+set -euo pipefail
+
+UPSTREAM_REMOTE="${UPSTREAM_REMOTE:-upstream}"
+UPSTREAM_BRANCH="${UPSTREAM_BRANCH:-master}"
+BASE_BRANCH="${BASE_BRANCH:-custom}"
+CANDIDATE_PREFIX="update/upstream"
+
+cd "$(git rev-parse --show-toplevel)"
+
+# --- 0. sanity checks -------------------------------------------------------
+if [ -n "$(git status --porcelain)" ]; then
+  echo "ERROR: working tree is not clean. Stash or commit your changes first." >&2
+  exit 1
+fi
+
+if ! git remote get-url "$UPSTREAM_REMOTE" >/dev/null 2>&1; then
+  echo "ERROR: git remote '$UPSTREAM_REMOTE' is not configured." >&2
+  echo "       Run: git remote add $UPSTREAM_REMOTE https://github.com/slskd/slskd.git" >&2
+  exit 1
+fi
+
+# --- 1. fetch upstream -------------------------------------------------------
+echo "Fetching $UPSTREAM_REMOTE/$UPSTREAM_BRANCH ..."
+git fetch "$UPSTREAM_REMOTE" "$UPSTREAM_BRANCH" --quiet
+
+UPSTREAM_SHA=$(git rev-parse "$UPSTREAM_REMOTE/$UPSTREAM_BRANCH")
+BASE_SHA=$(git rev-parse "$BASE_BRANCH")
+
+echo "Base branch : $BASE_BRANCH ($BASE_SHA)"
+echo "Upstream    : $UPSTREAM_REMOTE/$UPSTREAM_BRANCH ($UPSTREAM_SHA)"
+
+# --- 2. compare --------------------------------------------------------------
+NEW_COUNT=$(git rev-list --count "$BASE_SHA..$UPSTREAM_SHA" 2>/dev/null || echo 0)
+if [ "$NEW_COUNT" = "0" ]; then
+  echo ""
+  echo "No new upstream commits. Nothing to do."
+  exit 0
+fi
+
+echo ""
+echo "$NEW_COUNT new upstream commit(s):"
+git log --oneline "$BASE_SHA..$UPSTREAM_SHA" | head -20
+echo ""
+
+# --- 3. candidate branch name (avoid collisions) -----------------------------
+DATE=$(date +%Y%m%d)
+SHORT=$(git rev-parse --short "$UPSTREAM_SHA")
+CANDIDATE="${CANDIDATE_PREFIX}-${DATE}-${SHORT}"
+n=2
+while git rev-parse --verify --quiet "$CANDIDATE" >/dev/null; do
+  CANDIDATE="${CANDIDATE_PREFIX}-${DATE}-${SHORT}-${n}"
+  n=$((n + 1))
+done
+
+# --- 4. create candidate from base -------------------------------------------
+ORIGINAL_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+cleanup() { git checkout "$ORIGINAL_BRANCH" >/dev/null 2>&1 || true; }
+trap cleanup EXIT
+
+mkdir -p /tmp/scratchpad
+echo "Creating candidate branch: $CANDIDATE (from $BASE_BRANCH)"
+git checkout "$BASE_BRANCH" --quiet
+git checkout -b "$CANDIDATE" --quiet
+
+# --- 5. merge upstream -------------------------------------------------------
+echo "Merging $UPSTREAM_REMOTE/$UPSTREAM_BRANCH into $CANDIDATE ..."
+MERGE_OK=1
+if ! git merge --no-ff --no-edit "$UPSTREAM_REMOTE/$UPSTREAM_BRANCH" >/tmp/scratchpad/merge.log 2>&1; then
+  MERGE_OK=0
+fi
+
+if [ "$MERGE_OK" = "0" ]; then
+  echo ""
+  echo "MERGE CONFLICTS detected. Conflicting files:"
+  git diff --name-only --diff-filter=U
+  echo ""
+  echo "Candidate branch '$CANDIDATE' left in place with conflicts."
+  echo "Resolve the conflicts manually, then run the tests and build."
+  exit 2
+fi
+echo "Merge: clean."
+
+# --- 6. tests + lint + build --------------------------------------------------
+TESTS_OK=1
+LINT_OK=1
+DOTNET_OK=1
+BUILD_OK=1
+
+echo ""
+echo "Running web tests ..."
+if (cd src/web && CI=true npx craco test --watchAll false); then
+  echo "Web tests: PASS"
+else
+  echo "Web tests: FAIL"
+  TESTS_OK=0
+fi
+
+echo ""
+echo "Running lint ..."
+if (cd src/web && npx eslint .); then
+  echo "Lint: PASS"
+else
+  echo "Lint: FAIL"
+  LINT_OK=0
+fi
+
+echo ""
+echo "Running .NET tests ..."
+if dotnet test --configuration Release tests/slskd.Tests.Unit >/tmp/scratchpad/dotnet.log 2>&1; then
+  echo ".NET tests: PASS"
+else
+  echo ".NET tests: FAIL (see /tmp/scratchpad/dotnet.log)"
+  DOTNET_OK=0
+fi
+
+echo ""
+echo "Running full build ..."
+if ./bin/build --version "candidate-${SHORT}" >/tmp/scratchpad/build.log 2>&1; then
+  echo "Build: PASS"
+else
+  echo "Build: FAIL (see /tmp/scratchpad/build.log)"
+  BUILD_OK=0
+fi
+
+echo ""
+echo "===== SUMMARY ====="
+echo "Candidate branch : $CANDIDATE"
+echo "Merge           : OK"
+echo "Web tests       : $([ $TESTS_OK = 1 ] && echo PASS || echo FAIL)"
+echo "Lint            : $([ $LINT_OK = 1 ] && echo PASS || echo FAIL)"
+echo ".NET tests      : $([ $DOTNET_OK = 1 ] && echo PASS || echo FAIL)"
+echo "Build           : $([ $BUILD_OK = 1 ] && echo PASS || echo FAIL)"
+echo ""
+if [ "$TESTS_OK" = "1" ] && [ "$LINT_OK" = "1" ] && [ "$DOTNET_OK" = "1" ] && [ "$BUILD_OK" = "1" ]; then
+  echo "All checks passed."
+  echo "Review '$CANDIDATE', then merge it into 'custom' when you are satisfied:"
+  echo "  git checkout custom && git merge --no-ff $CANDIDATE"
+  exit 0
+else
+  echo "Some checks failed. Inspect '$CANDIDATE' and fix before merging into 'custom'."
+  exit 3
+fi
