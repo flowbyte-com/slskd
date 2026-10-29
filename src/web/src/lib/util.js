@@ -1,12 +1,19 @@
 export const formatSeconds = (seconds) => {
   if (seconds === undefined) return '';
+
   const date = new Date(1_970, 0, 1);
   date.setSeconds(seconds);
+
+  // the time is matched at the start of the string; the time zone name that
+  // follows it can contain a ':' (e.g. 'GMT+00:00'), which would otherwise
+  // be matched instead of the time.
+  const time = date.toTimeString().match(/^\d{2}:\d{2}:\d{2}/u)[0];
+
   if (seconds >= 3_600) {
-    return date.toTimeString().replace(/.*(\d{2}:\d{2}:\d{2}).*/u, '$1');
+    return time;
   }
 
-  return date.toTimeString().replace(/.*(\d{2}:\d{2}).*/u, '$1');
+  return time.slice(3);
 };
 
 export const formatBytesAsUnit = (bytes, unit, decimals = 2) => {
