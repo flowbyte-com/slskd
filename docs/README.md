@@ -20,6 +20,10 @@
 
 ### [Build](https://github.com/slskd/slskd/blob/master/docs/build.md)
 
+## Features
+
+### [Searching and Result Filters](https://github.com/slskd/slskd/blob/master/docs/search.md)
+
 ## Troubleshooting
 
 ### [Migrations](https://github.com/slskd/slskd/blob/master/docs/migrations.md)

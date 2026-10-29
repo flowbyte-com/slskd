@@ -82,6 +82,142 @@
   margin-top: 1rem;
 }
 
+.search-filter-panel {
+  margin-top: 15px !important;
+}
+
+.search-filter-panel-header {
+  align-items: center;
+  display: flex;
+  gap: .5em;
+}
+
+.search-filter-panel-header > span {
+  flex: 1;
+}
+
+.search-filter-panel-form {
+  margin-top: 1rem !important;
+}
+
+.search-filter-panel-form .ui.form > .fields > .field > label {
+  font-weight: bold;
+}
+
+.search-filter-panel-note {
+  margin-top: .5rem !important;
+  margin-bottom: 0 !important;
+}
+
+.search-filter-presets {
+  margin-top: 1rem;
+}
+
+.search-filter-presets-label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: .5em;
+}
+
+.search-filter-presets-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5em;
+}
+
+/* dark theme: keep the result filters panel readable.  the rules are scoped
+   to the panel so that the rest of the application's dropdowns are untouched. */
+.dark .search-filter-panel .ui.form > .fields > .field > label {
+  color: var(--smui-site-body-text-color);
+}
+
+.dark .search-filter-panel .ui.selection.dropdown {
+  color: var(--smui-site-body-text-color);
+  background: var(--smui-segment-background);
+  border-color: var(--slskd-tertiary-border-color);
+}
+
+.dark .search-filter-panel .ui.selection.dropdown .text {
+  color: var(--smui-site-body-text-color);
+}
+
+.dark .search-filter-panel .ui.selection.dropdown .default.text {
+  color: var(--slskd-color-subtle);
+}
+
+.dark .search-filter-panel .ui.selection.dropdown > .dropdown.icon {
+  color: var(--smui-site-body-text-color);
+}
+
+.dark .search-filter-panel .ui.selection.dropdown.disabled .text {
+  color: var(--slskd-color-subtle);
+}
+
+.dark .search-filter-panel .ui.selection.dropdown .menu {
+  background: var(--smui-segment-background);
+  border-color: var(--slskd-tertiary-border-color);
+}
+
+.dark .search-filter-panel .ui.selection.dropdown .menu .item {
+  color: var(--smui-site-body-text-color);
+}
+
+.dark .search-filter-panel .ui.selection.dropdown .menu .item:hover {
+  background: var(--slskd-hover-background);
+  color: var(--smui-site-body-text-color);
+}
+
+.dark .search-filter-panel .ui.selection.dropdown .menu .item.active,
+.dark .search-filter-panel .ui.selection.dropdown .menu .item.selected {
+  background: var(--slskd-emphasis-background);
+  color: #fff;
+}
+
+.dark .search-filter-panel .ui.selection.dropdown .menu .item .text {
+  color: var(--smui-site-body-text-color);
+}
+
+/* the preset buttons and the "presets" label follow the body text colour */
+.dark .search-filter-presets-label {
+  color: var(--smui-site-body-text-color);
+}
+
+.dark .search-filter-panel .ui.button {
+  color: var(--smui-button-text-color);
+  background: var(--smui-button-background-color);
+  border: var(--smui-button-border);
+}
+
+.dark .search-filter-panel .ui.button:hover {
+  background: var(--smui-button-hover-background-color);
+  color: var(--smui-button-text-color);
+}
+
+.search-filter-preset {
+  align-items: center;
+  display: inline-flex;
+}
+
+.search-filter-preset-edit {
+  align-items: center;
+  display: inline-flex;
+  gap: .25em;
+}
+
+.result-card .extra {
+  background: var(--smui-card-background, rgba(255, 255, 255, .95));
+  border-top: 1px solid rgba(0, 0, 0, .1);
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, .08);
+  padding: 1em 1.5em !important;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+}
+
+.dark .result-card .extra {
+  border-top: 1px solid rgba(255, 255, 255, .1);
+}
+
 .search-list-icon {
   width: 40px !important;
 }

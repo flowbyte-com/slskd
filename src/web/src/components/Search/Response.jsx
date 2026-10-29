@@ -216,10 +216,10 @@ class Response extends Component {
         </Card.Content>
         {selectedFiles.length > 0 && (
           <Card.Content extra>
-            <span>
+            <span className="result-download-actions">
               <Button
                 color="green"
-                content="Download"
+                content="Download Selected Files"
                 disabled={
                   this.props.disabled || downloadRequest === 'inProgress'
                 }
