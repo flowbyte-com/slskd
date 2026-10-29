@@ -1,0 +1,83 @@
+.favourites-container {
+  padding-left: 15px;
+  padding-right: 15px;
+  max-width: 1200px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.favourites-container:last-child {
+  margin-bottom: 16px;
+}
+
+.favourites-segment {
+  margin-top: 15px !important;
+  height: 78px !important;
+  display: flex;
+}
+
+.favourites-segment-icon {
+  padding-top: 10px;
+  padding-right: .5em;
+}
+
+.favourites-input {
+  width: 100%;
+}
+
+.ui.favourites-input > input {
+  padding: 0;
+  text-indent: 1em;
+}
+
+.favourites-toolbar {
+  display: flex;
+  align-items: center;
+  gap: .75em;
+  margin: 1rem 0 .5rem 0;
+}
+
+.favourites-count {
+  color: var(--smui-site-body-text-color);
+}
+
+.favourites-table {
+  width: 100%;
+}
+
+.favourites-header-username {
+  width: 40%;
+}
+
+.favourites-header-status {
+  width: 25%;
+}
+
+.favourites-header-actions {
+  width: 35%;
+}
+
+.favourites-username {
+  margin-left: .5em;
+}
+
+.favourites-actions .ui.button {
+  margin-bottom: .25em;
+  margin-right: .5em;
+}
+
+.favourite-toggle.ui.button {
+  min-width: 0;
+  padding: .5em .6em;
+}
+
+.favourite-toggle.ui.button i.icon {
+  margin: 0;
+}
+
+@media only screen and (max-width: 684px) {
+  .favourites-header-status,
+  .favourites-header-actions {
+    width: auto;
+  }
+}

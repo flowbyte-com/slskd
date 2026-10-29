@@ -14,6 +14,7 @@ import AppFooter from './AppFooter';
 import Browse from './Browse/Browse';
 import Chat from './Chat/Chat';
 import Dashboard from './Dashboard/Dashboard';
+import Favourites from './Favourites/Favourites';
 import LoginForm from './LoginForm';
 import Rooms from './Rooms/Rooms';
 import Searches from './Search/Searches';
@@ -441,6 +442,12 @@ class App extends Component {
                     Users
                   </Menu.Item>
                 </Link>
+                <Link to={`${urlBase}/favourites`}>
+                  <Menu.Item>
+                    <Icon name="star" />
+                    Favourites
+                  </Menu.Item>
+                </Link>
                 <Link to={`${urlBase}/browse`}>
                   <Menu.Item>
                     <Icon name="folder open" />
@@ -616,6 +623,12 @@ class App extends Component {
                       path={`${urlBase}/users`}
                       render={(props) =>
                         this.withTokenCheck(<Users {...props} />)
+                      }
+                    />
+                    <Route
+                      path={`${urlBase}/favourites`}
+                      render={(props) =>
+                        this.withTokenCheck(<Favourites {...props} />)
                       }
                     />
                     <Route

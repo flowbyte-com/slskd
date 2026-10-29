@@ -1,6 +1,7 @@
 import './Users.css';
 import { activeUserInfoKey } from '../../config';
 import * as users from '../../lib/users';
+import FavouriteToggle from '../Favourites/FavouriteToggle';
 import PlaceholderSegment from '../Shared/PlaceholderSegment';
 import User from './User';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -143,7 +144,10 @@ const Users = () => {
               raised
             >
               <Item.Group>
-                <User {...user} />
+                <User
+                  {...user}
+                  actions={<FavouriteToggle username={user.username} />}
+                />
               </Item.Group>
             </Segment>
           )}
