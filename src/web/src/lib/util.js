@@ -64,6 +64,30 @@ export const getFileName = (fullPath) => {
   return fullPath.split('\\').pop().split('/').pop();
 };
 
+/**
+ * Extracts the lower-case extension of the given path.
+ *
+ * The extension is the text between the last '.' of the file name and the end
+ * of the file name.  Paths without an extension, and dot files such as
+ * '.bashrc', have no extension.
+ * @param {string} fullPath the path to inspect
+ * @returns {string} the lower-case extension, or an empty string.
+ */
+export const getFileExtension = (fullPath) => {
+  if (!fullPath) {
+    return '';
+  }
+
+  const fileName = getFileName(fullPath);
+  const index = fileName.lastIndexOf('.');
+
+  if (index <= 0 || index === fileName.length - 1) {
+    return '';
+  }
+
+  return fileName.slice(index + 1).toLowerCase();
+};
+
 export const getDirectoryName = (fullPath) => {
   let path = fullPath;
 
@@ -95,6 +119,44 @@ export const formatAttributes = ({
   }
 
   return bitRate ? `${bitRate} Kbps` : '';
+};
+
+/**
+ * Formats the bitrate of the given file.
+ *
+ * Lossless files are described by their bit depth and sample rate, lossy
+ * files by their bitrate.  The encoding (CBR or VBR) is only included when
+ * the file's metadata reports it.
+ * @param {object} file the file to format
+ * @param {number} file.bitRate the bitrate of the file, in kbps
+ * @param {number} file.bitDepth the bit depth of the file
+ * @param {boolean} file.isVariableBitRate true if the file is variable bitrate
+ * @param {number} file.sampleRate the sample rate of the file, in Hz
+ * @returns {string} the formatted bitrate, or an empty string.
+ */
+export const formatBitrate = ({
+  bitRate,
+  bitDepth,
+  isVariableBitRate,
+  sampleRate,
+}) => {
+  if (sampleRate && bitDepth) {
+    return `${bitDepth} bit / ${(sampleRate / 1_000).toFixed(1)} kHz`;
+  }
+
+  if (!bitRate) {
+    return '';
+  }
+
+  const encoding =
+    // eslint-disable-next-line no-nested-ternary
+    isVariableBitRate === true
+      ? 'VBR'
+      : isVariableBitRate === false
+        ? 'CBR'
+        : '';
+
+  return `${bitRate} kbps${encoding ? ` ${encoding}` : ''}`;
 };
 
 export const sleep = (milliseconds) => {
