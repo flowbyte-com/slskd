@@ -3,11 +3,19 @@ import {
   getResponses,
   parseFiltersFromString,
 } from '../../../lib/searches';
+import {
+  combineSearchFilters,
+  defaultSearchPreferences,
+  readSearchPreferences,
+  splitSearchPreferences,
+  writeSearchPreferences,
+} from '../../../lib/searchFilters';
 import { sleep } from '../../../lib/util';
 import ErrorSegment from '../../Shared/ErrorSegment';
 import LoaderSegment from '../../Shared/LoaderSegment';
 import Switch from '../../Shared/Switch';
 import Response from '../Response';
+import SearchFilterPanel from '../SearchFilterPanel';
 import SearchDetailHeader from './SearchDetailHeader';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Checkbox, Dropdown, Input, Segment } from 'semantic-ui-react';
@@ -47,10 +55,33 @@ const SearchDetail = ({
   const [hiddenResults, setHiddenResults] = useState([]);
   const [resultSort, setResultSort] = useState('uploadSpeed');
   const [hideLocked, setHideLocked] = useState(true);
-  const [hideNoFreeSlots, setHideNoFreeSlots] = useState(false);
   const [foldResults, setFoldResults] = useState(false);
-  const [resultFilters, setResultFilters] = useState('');
+  const [preferences, setPreferences] = useState(() => readSearchPreferences());
   const [displayCount, setDisplayCount] = useState(5);
+
+  // the visual filters, and the advanced (textual) filter
+  const { advancedFilters: resultFilters, filters: visualFilters } = useMemo(
+    () => splitSearchPreferences(preferences),
+    [preferences],
+  );
+
+  // the user's filter preferences are persisted, and are not reset when the
+  // user moves between searches.
+  useEffect(() => {
+    writeSearchPreferences(preferences);
+  }, [preferences]);
+
+  const updateFilters = (filters) => {
+    setPreferences((current) => ({ ...current, ...filters }));
+  };
+
+  const setAdvancedFilters = (advancedFilters) => {
+    setPreferences((current) => ({ ...current, advancedFilters }));
+  };
+
+  const resetFilters = () => {
+    setPreferences({ ...defaultSearchPreferences });
+  };
 
   // when the search transitions from !isComplete -> isComplete,
   // fetch the results from the server
@@ -77,6 +108,17 @@ const SearchDetail = ({
     }
   }, [id, isComplete]);
 
+  // the visual filters and the advanced filter are applied together; a file
+  // must satisfy both.
+  const { conflicts, filters: combinedFilters } = useMemo(
+    () =>
+      combineSearchFilters(
+        parseFiltersFromString(resultFilters),
+        visualFilters,
+      ),
+    [resultFilters, visualFilters],
+  );
+
   // apply sorting and filters.  this can take a while for larger result
   // sets, so memoize it.
   const sortedAndFilteredResults = useMemo(() => {
@@ -87,8 +129,6 @@ const SearchDetail = ({
 
     const { field, order } = sortOptions[resultSort];
 
-    const filters = parseFiltersFromString(resultFilters);
-
     return results
       .filter((r) => !hiddenResults.includes(r.username))
       .map((r) => {
@@ -98,9 +138,9 @@ const SearchDetail = ({
 
         return r;
       })
-      .map((response) => filterResponse({ filters, response }))
+      .map((response) => filterResponse({ filters: combinedFilters, response }))
       .filter((r) => r.fileCount + r.lockedFileCount > 0)
-      .filter((r) => !(hideNoFreeSlots && !r.hasFreeUploadSlot))
+      .filter((r) => !(visualFilters.freeSlotsOnly && !r.hasFreeUploadSlot))
       .sort((a, b) => {
         if (order === 'asc') {
           return a[field] - b[field];
@@ -109,12 +149,12 @@ const SearchDetail = ({
         return b[field] - a[field];
       });
   }, [
+    combinedFilters,
     hiddenResults,
     hideLocked,
-    hideNoFreeSlots,
-    resultFilters,
     resultSort,
     results,
+    visualFilters.freeSlotsOnly,
   ]);
 
   // when a user uses the action buttons, we will *probably* re-use this component,
@@ -176,63 +216,64 @@ const SearchDetail = ({
         }
       >
         {loaded && (
-          <Segment
-            className="search-options"
-            raised
-          >
-            <Dropdown
-              button
-              className="search-options-sort icon"
-              floating
-              icon="sort"
-              labeled
-              onChange={(_event, { value }) => setResultSort(value)}
-              options={sortDropdownOptions}
-              text={
-                sortDropdownOptions.find((o) => o.value === resultSort).text
-              }
+          <>
+            <SearchFilterPanel
+              conflicts={conflicts}
+              filters={visualFilters}
+              onChange={updateFilters}
+              onReset={resetFilters}
             />
-            <div className="search-option-toggles">
-              <Checkbox
-                checked={hideLocked}
-                className="search-options-hide-locked"
-                label="Hide Locked Results"
-                onChange={() => setHideLocked(!hideLocked)}
-                toggle
-              />
-              <Checkbox
-                checked={hideNoFreeSlots}
-                className="search-options-hide-no-slots"
-                label="Hide Results with No Free Slots"
-                onChange={() => setHideNoFreeSlots(!hideNoFreeSlots)}
-                toggle
-              />
-              <Checkbox
-                checked={foldResults}
-                className="search-options-fold-results"
-                label="Fold Results"
-                onChange={() => setFoldResults(!foldResults)}
-                toggle
-              />
-            </div>
-            <Input
-              action={
-                Boolean(resultFilters) && {
-                  color: 'red',
-                  icon: 'x',
-                  onClick: () => setResultFilters(''),
+            <Segment
+              className="search-options"
+              raised
+            >
+              <Dropdown
+                button
+                className="search-options-sort icon"
+                floating
+                icon="sort"
+                labeled
+                onChange={(_event, { value }) => setResultSort(value)}
+                options={sortDropdownOptions}
+                text={
+                  sortDropdownOptions.find((o) => o.value === resultSort).text
                 }
-              }
-              className="search-filter"
-              label={{ content: 'Filter', icon: 'filter' }}
-              onChange={(_event, data) => setResultFilters(data.value)}
-              placeholder="
-                lackluster container -bothersome iscbr|isvbr islossless|islossy 
-                minbitrate:320 minbitdepth:24 minfilesize:10 minfilesinfolder:8 minlength:5000
-              "
-              value={resultFilters}
-            />
-          </Segment>
+              />
+              <div className="search-option-toggles">
+                <Checkbox
+                  checked={hideLocked}
+                  className="search-options-hide-locked"
+                  label="Hide Locked Results"
+                  onChange={() => setHideLocked(!hideLocked)}
+                  toggle
+                />
+                <Checkbox
+                  checked={foldResults}
+                  className="search-options-fold-results"
+                  label="Fold Results"
+                  onChange={() => setFoldResults(!foldResults)}
+                  toggle
+                />
+              </div>
+              <Input
+                action={
+                  Boolean(resultFilters) && {
+                    color: 'red',
+                    icon: 'x',
+                    onClick: () => setAdvancedFilters(''),
+                  }
+                }
+                className="search-filter"
+                label={{ content: 'Advanced Filter', icon: 'filter' }}
+                onChange={(_event, data) => setAdvancedFilters(data.value)}
+                placeholder="
+                  lackluster container -bothersome iscbr|isvbr islossless|islossy
+                  minbitrate:320 bitrate:320 minbitdepth:24 minfilesize:10 minfilesinfolder:8 minlength:5000
+                "
+                value={resultFilters}
+              />
+            </Segment>
+          </>
         )}
         {loaded &&
           sortedAndFilteredResults.slice(0, displayCount).map((r) => (

@@ -183,12 +183,36 @@ body {
     width: 100px;
 }
 
+.filelist-format {
+    width: 80px;
+}
+
+.filelist-bitrate {
+    width: 140px;
+}
+
 .filelist-attributes {
     width: 115px;
 }
 
 .filelist-length{
     width: 65px;
+}
+
+.filelist-table-wrapper {
+    overflow-x: auto;
+}
+
+.filelist-selection {
+    display: flex;
+    align-items: center;
+    gap: .5em;
+    padding-top: .5em;
+    flex-wrap: wrap;
+}
+
+.filelist-selection-count {
+    margin-right: .25em;
 }
 
 .showmore-button {
