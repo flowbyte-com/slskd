@@ -31,6 +31,7 @@ const FreeUploadSlot = ({ hasFreeUploadSlot }) => (
 );
 
 const User = ({
+  actions,
   address,
   description,
   hasPicture,
@@ -62,6 +63,7 @@ const User = ({
         , Port: {port}
       </Item.Meta>
       <Item.Description>{description || 'No user info.'}</Item.Description>
+      {actions && <Item.Extra>{actions}</Item.Extra>}
     </Item.Content>
   </Item>
 );

@@ -1,6 +1,7 @@
 import * as transfers from '../../lib/transfers';
 import { getDirectoryContents } from '../../lib/users';
 import { formatBytes, getDirectoryName } from '../../lib/util';
+import FavouriteToggle from '../Favourites/FavouriteToggle';
 import FileList from '../Shared/FileList';
 import React, { Component } from 'react';
 import { toast } from 'react-toastify';
@@ -168,6 +169,10 @@ class Response extends Component {
               name="circle"
             />
             {response.username}
+            <FavouriteToggle
+              className="result-favourite-toggle"
+              username={response.username}
+            />
             <Icon
               className="close-button"
               color="red"
