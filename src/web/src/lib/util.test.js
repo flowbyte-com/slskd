@@ -32,6 +32,19 @@ describe('formatSeconds', () => {
   it('returns an empty string for undefined durations', () => {
     expect(utils.formatSeconds(undefined)).toBe('');
   });
+
+  it('is not affected by a time zone name that contains a colon', () => {
+    // browsers can render the time zone as 'GMT+01:00', which contains a ':'
+    const spy = jest
+      .spyOn(Date.prototype, 'toTimeString')
+      .mockImplementation(() => '00:03:30 GMT+0100 (GMT+01:00)');
+
+    try {
+      expect(utils.formatSeconds(210)).toBe('03:30');
+    } finally {
+      spy.mockRestore();
+    }
+  });
 });
 
 describe('getFileExtension', () => {
