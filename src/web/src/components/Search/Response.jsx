@@ -1,9 +1,12 @@
+import { urlBase } from '../../config';
+import { buildBrowseLocation } from '../../lib/favourites';
 import * as transfers from '../../lib/transfers';
 import { getDirectoryContents } from '../../lib/users';
 import { formatBytes, getDirectoryName } from '../../lib/util';
 import FavouriteToggle from '../Favourites/FavouriteToggle';
 import FileList from '../Shared/FileList';
 import React, { Component } from 'react';
+import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Button, Card, Icon, Label } from 'semantic-ui-react';
 
@@ -168,7 +171,13 @@ class Response extends Component {
               color={free ? 'green' : 'yellow'}
               name="circle"
             />
-            {response.username}
+            <Link
+              className="result-username"
+              title={`Browse ${response.username}'s shared files`}
+              to={buildBrowseLocation(response.username, urlBase)}
+            >
+              {response.username}
+            </Link>
             <FavouriteToggle
               className="result-favourite-toggle"
               username={response.username}
