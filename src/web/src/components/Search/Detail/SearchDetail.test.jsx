@@ -1,6 +1,6 @@
 import { getResponses } from '../../../lib/searches';
-import SearchDetail from './SearchDetail';
 import { FavouritesProvider } from '../../Favourites/FavouritesContext';
+import SearchDetail from './SearchDetail';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { act } from 'react-dom/test-utils';
