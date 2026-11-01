@@ -15,6 +15,7 @@ import Browse from './Browse/Browse';
 import Chat from './Chat/Chat';
 import Dashboard from './Dashboard/Dashboard';
 import Favourites from './Favourites/Favourites';
+import ListeningPortControl from './ListeningPort/ListeningPortControl';
 import LoginForm from './LoginForm';
 import Rooms from './Rooms/Rooms';
 import Searches from './Search/Searches';
@@ -472,6 +473,7 @@ class App extends Component {
                 server={server}
                 user={user}
               />
+              <ListeningPortControl options={applicationOptions} />
               {(pendingReconnect || pendingRestart || pendingShareRescan) && (
                 <Menu.Item position="right">
                   <Icon.Group className="menu-icon-group">
