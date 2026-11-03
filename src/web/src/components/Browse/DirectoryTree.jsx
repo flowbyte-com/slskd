@@ -65,7 +65,7 @@ const findNodePath = (nodes, targetName) => {
   return null;
 };
 
-const filterTree = (tree, query) => {
+export const filterTree = (tree, query) => {
   const lower = query.toLowerCase();
 
   const visit = (node, depth) => {

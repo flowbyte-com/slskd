@@ -46,6 +46,23 @@ const formatBrowseSummary = ({
   `${files + lockedFiles} files in ${directories + lockedDirectories} ` +
   `directories (including ${lockedFiles} files in ${lockedDirectories} locked directories)`;
 
+const directoryNameCollator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: 'accent',
+});
+
+const getDirectoryDisplayName = (name) => name.split(/[/\\]/u).pop();
+
+export const compareDirectoryNames = (a, b) =>
+  directoryNameCollator.compare(
+    getDirectoryDisplayName(a.name),
+    getDirectoryDisplayName(b.name),
+  );
+
+// sort a copy so the order of the incoming browse response is left untouched
+const sortDirectories = (directories) =>
+  directories.slice().sort(compareDirectoryNames);
+
 const initialState = {
   browseError: undefined,
   browseLoading: false,
@@ -63,6 +80,56 @@ const initialState = {
   separator: '\\',
   tree: [],
   username: '',
+};
+
+export const getDirectoryTree = ({ directories, separator }) => {
+  if (!directories.length || directories[0].name === undefined) {
+    return [];
+  }
+
+  // group each directory under its parent path in a single O(N) pass
+  const byParent = new Map();
+  const nameSet = new Set();
+
+  for (const d of directories) {
+    nameSet.add(d.name);
+    const lastSep = d.name.lastIndexOf(separator);
+    const parentKey = lastSep === -1 ? '' : d.name.slice(0, lastSep);
+    let bucket = byParent.get(parentKey);
+    if (!bucket) {
+      bucket = [];
+      byParent.set(parentKey, bucket);
+    }
+
+    bucket.push(d);
+  }
+
+  // roots are directories whose parent path isn't itself in the list
+  const roots = directories.filter((d) => {
+    const lastSep = d.name.lastIndexOf(separator);
+    const parentKey = lastSep === -1 ? '' : d.name.slice(0, lastSep);
+    return !nameSet.has(parentKey);
+  });
+
+  // recursively build the tree, computing file/directory counts along the
+  // way; each sibling list is sorted exactly once, by displayed name
+  const buildNode = (dir) => {
+    const children = sortDirectories(byParent.get(dir.name) || []).map(
+      buildNode,
+    );
+    return {
+      ...dir,
+      children,
+      totalDirectoryCount:
+        children.length +
+        children.reduce((s, c) => s + c.totalDirectoryCount, 0),
+      totalFileCount:
+        (dir.files?.length ?? 0) +
+        children.reduce((s, c) => s + c.totalFileCount, 0),
+    };
+  };
+
+  return sortDirectories(roots).map(buildNode);
 };
 
 class Browse extends Component {
@@ -144,7 +211,7 @@ class Browse extends Component {
           lockedFiles: lockedFileCount,
         },
         separator,
-        tree: this.getDirectoryTree({ directories, separator }),
+        tree: getDirectoryTree({ directories, separator }),
       });
 
       this.setState({ browseError: undefined, browseState: 'complete' }, () => {
@@ -236,7 +303,7 @@ class Browse extends Component {
       const directories = saved?.directories ?? [];
       const separator = saved?.separator ?? meta?.separator ?? '\\';
       const tree = directories.length
-        ? this.getDirectoryTree({ directories, separator })
+        ? getDirectoryTree({ directories, separator })
         : [];
 
       this.setState({
@@ -262,53 +329,6 @@ class Browse extends Component {
 
     const response = await users.getBrowseStatus({ username });
     this.setState({ browseStatus: response.data });
-  };
-
-  getDirectoryTree = ({ directories, separator }) => {
-    if (!directories.length || directories[0].name === undefined) {
-      return [];
-    }
-
-    // group each directory under its parent path in a single O(N) pass
-    const byParent = new Map();
-    const nameSet = new Set();
-
-    for (const d of directories) {
-      nameSet.add(d.name);
-      const lastSep = d.name.lastIndexOf(separator);
-      const parentKey = lastSep === -1 ? '' : d.name.slice(0, lastSep);
-      let bucket = byParent.get(parentKey);
-      if (!bucket) {
-        bucket = [];
-        byParent.set(parentKey, bucket);
-      }
-
-      bucket.push(d);
-    }
-
-    // roots are directories whose parent path isn't itself in the list
-    const roots = directories.filter((d) => {
-      const lastSep = d.name.lastIndexOf(separator);
-      const parentKey = lastSep === -1 ? '' : d.name.slice(0, lastSep);
-      return !nameSet.has(parentKey);
-    });
-
-    // recursively build the tree, computing file/directory counts along the way
-    const buildNode = (dir) => {
-      const children = (byParent.get(dir.name) || []).map(buildNode);
-      return {
-        ...dir,
-        children,
-        totalDirectoryCount:
-          children.length +
-          children.reduce((s, c) => s + c.totalDirectoryCount, 0),
-        totalFileCount:
-          (dir.files?.length ?? 0) +
-          children.reduce((s, c) => s + c.totalFileCount, 0),
-      };
-    };
-
-    return roots.map(buildNode);
   };
 
   findDirectoryByPath = (path, nodes) => {
